@@ -25,7 +25,7 @@ install: all
 uninstall:
 	$(foreach target,$(TARGETS),rm -f $(prefix)/bin/$(target);)
 
-fitsipress: compress.cpp uvcompress.cpp
+fitsipress: src/compress.cpp src/fitsipress.cpp
 	$(CXX) $(CFLAGS) $(CFITSIO_INCS) $^ -o $@ $(CFITSIO_LIBS) -lm
 
 clean:
