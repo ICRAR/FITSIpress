@@ -1,7 +1,7 @@
 
 CFLAGS=-g -O -Wall -D_FILE_OFFSET_BITS=64
-CFITSIO_INCS=$(shell pkg-config --silence-errors --cflags cfitsio)
-CFITSIO_LIBS=$(shell pkg-config --silence-errors --libs cfitsio)
+CFITSIO_INCS=$(shell pkg-config --cflags cfitsio)
+CFITSIO_LIBS=$(shell pkg-config --libs cfitsio)
 
 # if for some reason you need to manually specify CFITSIO stuff, then it should be something like:
 #CFITSIO_INCS=-I/some/path/to/include
