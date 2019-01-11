@@ -8,11 +8,7 @@
 
 #include "compress.h"
 #include <assert.h>
-
-
-/* there is already a built-in round function in math.h type "man round"
-#define round(r) (r>0.0)?floor(r+0.5):ceil(r-0.5)
-*/
+#include <math.h>
 
 //
 // fits_write_compressed()
@@ -38,6 +34,7 @@ int fits_write_compressed(fitsfile *out,
                           LONGLONG nelements,
                           int naxis,
                           long *naxes,
+                          bool a,
                           float bscale,
                           int comp,
                           float maxabsdiff[],
@@ -48,8 +45,8 @@ int fits_write_compressed(fitsfile *out,
 {
     int status = 0;    // returned status of FITS functions
     int *buff_out = (int*) malloc(sizeof(int) * nelements);
-    float minbin = 0;
-    float maxbin = 0;
+    float min = 0;
+    float max = 0;
     float tmp;
 
     if( buff_in == NULL){
@@ -57,13 +54,28 @@ int fits_write_compressed(fitsfile *out,
         exit(EXIT_FAILURE);
     }
 
+    for(int i=0; i<nelements; ++i){                 // find min, max
+        min = buff_in[i] < min ? buff_in[i] : min;
+        max = buff_in[i] > max ? buff_in[i] : max;
+    }
+
+    if( a ){
+        int p = 1;
+        cout << "minimum value = " << min << endl;
+        if( min ){
+            while(round(min*p) == 0){ 
+                p *= 10;
+            }
+            bscale = p * 10; // one digit up
+        } else {
+            bscale = 10;
+        }
+        cout << "bscale = " << bscale << endl;
+    }
+
     for(int i=0; i<nelements; ++i){
         // round, decimate and convert
         buff_out[i] = (int)round(bscale * buff_in[i]);
-
-        // find min, max
-        minbin = buff_in[i] < minbin ? buff_in[i] : minbin;
-        maxbin = buff_in[i] > maxbin ? buff_in[i] : maxbin;
 
         // calculate max diff and relative max diff
         tmp = fabs(buff_in[i] - buff_out[i] / bscale);
@@ -80,9 +92,10 @@ int fits_write_compressed(fitsfile *out,
         }
     }
 
+
+
     //build and output a histirgam for this HDU
-    if( hbinnum )
-    {
+    if( hbinnum ){
         int *hist = (int*) malloc(sizeof(int) * hbinnum);
         if( hist == NULL){
             cerr << "Err: Could not allocate memory.";
@@ -91,12 +104,12 @@ int fits_write_compressed(fitsfile *out,
 
         memset(hist, 0, sizeof(int) * hbinnum);
 
-        float dr = (maxbin - minbin) / (hbinnum-1);
+        float dr = (max - min) / (hbinnum-1);
 
         // another pass to built the histogram
         int j;
         for(int i=0; i<nelements; ++i){
-            j = (buff_in[i] - minbin)/dr;
+            j = (buff_in[i] - min)/dr;
             if(j >= hbinnum || j < 0) assert("Exceeds the index in histogram or negative");
             else
                 hist[j]++;
@@ -104,7 +117,7 @@ int fits_write_compressed(fitsfile *out,
 
         //print the histogram data
         cout << "--------- Histogram ---------" << endl;
-        cout << "First Bin = " << minbin << endl;
+        cout << "First Bin = " << min << endl;
         cout << "Step = " << dr << endl;
         cout << "Number of bins = " << hbinnum << endl;
         for(int i=0; i<hbinnum; ++i)
@@ -131,8 +144,8 @@ int fits_write_compressed(fitsfile *out,
     PRINTERRMSG(status);
 
     // update global min, max
-    minglobal = minbin < minglobal ? minbin : minglobal;
-    maxglobal = maxbin > maxglobal ? maxbin : maxglobal;
+    minglobal = min < minglobal ? min : minglobal;
+    maxglobal = max > maxglobal ? max : maxglobal;
 
     if(buff_out != NULL) free(buff_out);
 
@@ -156,6 +169,7 @@ int Compress(fitsfile *in,
              double bscale,
              int comp,
              bool v,
+             bool a,
              int binnum,
              int hbinnum)
 {
@@ -164,7 +178,7 @@ int Compress(fitsfile *in,
     int status = 0;    // returned status of FITS functions
     int bitpix;
     LONGLONG nelements = 0;
-    int count = 0;
+    int count = 1;
     float maxabsdiff[] = {0.0, 0.0};
     float maxreldiff[] = {0.0, 0.0};
     float maxglobal = 0;
@@ -199,7 +213,7 @@ int Compress(fitsfile *in,
             fits_read_img(in, TFLOAT, 1, nelements, &nulval, buff_in, NULL, &status);
             PRINTERRMSG(status);
 
-            fits_write_compressed(out, buff_in, nelements, naxis, naxes, bscale, comp, maxabsdiff, maxreldiff, maxglobal, minglobal, hbinnum);
+            fits_write_compressed(out, buff_in, nelements, naxis, naxes, a, bscale, comp, maxabsdiff, maxreldiff, maxglobal, minglobal, hbinnum);
 
             if( buff_in != NULL ) free(buff_in);
         }

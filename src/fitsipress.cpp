@@ -3,16 +3,6 @@
 //  tifsipress - compression/decompression of FITS floating point images
 //  using DEC compression schema
 //
-//  **Compression guideline (use only as indication, varies with data!)
-//
-//  Compression                     GZIP      RICE
-//  Precision(decimal ponints)
-//                      0           1:2.2     1:3.1
-//                      1           1:2.1     1:2.3
-//                      2           1:2.1     1:1.9
-//                      3           1:1.9     1:1.6
-//                      4           1:1.9     1:1.3
-//
 //  Created by Slava Kitaeff on 09/01/18.
 //  Copyright (c) 2018 ICRAR/UWA. All rights reserved.
 //
@@ -47,6 +37,7 @@ int main(int argc, const char * argv[])
     int comp = RICE_1;  // compression type
     bool c = true;      // compress/decompress flag
     bool v = false;     // report the max difference
+    bool a = false;
     int binnum = 0;         // number of bins for histogram
     int hbinnum = 0;         // number of bins for histogram for each HDU
 
@@ -76,8 +67,11 @@ int main(int argc, const char * argv[])
         if(arg == "-d2") bscale = 100;
         if(arg == "-d3") bscale = 1000;
         if(arg == "-d4") bscale = 10000;
+        if(arg == "-d5") bscale = 100000;
+        if(arg == "-d6") bscale = 1000000;
         if(arg == "-d") sscanf(argv[i+1], "%f", &bscale);
         if(arg == "-v") v = true;
+        if(arg == "-a") a = true;
         if(arg == "-h") sscanf(argv[i+1], "%d", &binnum);
         if(arg == "-hh") sscanf(argv[i+1], "%d", &hbinnum);
         }
@@ -100,7 +94,7 @@ int main(int argc, const char * argv[])
     time(&timerb);
 
     if(c)
-        Compress(in, out, bscale, comp, v, binnum, hbinnum);
+        Compress(in, out, bscale, comp, v, a, binnum, hbinnum);
     else
         Decompress(in, out);
 

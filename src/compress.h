@@ -52,6 +52,7 @@ int Compress(fitsfile *in,
              double bscale,
              int comp,
              bool v,
+             bool a,
              int binnum,
              int hbinnum);
 int Decompress(fitsfile *in, fitsfile *out);
